@@ -1,0 +1,255 @@
+# evaluator.py
+
+import os
+import json
+import numpy as np
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
+
+load_dotenv()
+
+API_KEY = os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    raise RuntimeError("Missing GEMINI_API_KEY in .env")
+
+client = genai.Client(api_key=API_KEY)
+
+GEN_MODEL = "gemini-2.5-flash"
+EMB_MODEL = "gemini-embedding-001"
+
+# -----------------------------
+# BLOCKLIST (skip spam companies)
+# -----------------------------
+BLOCKED_COMPANIES = [
+    "beaconfire",
+    "dice",
+    "jobs via dice",
+    "sysmind",
+    "sysmind llc",
+    "kforce",
+    "insight global",
+    "revature",
+    "hcl",
+    "global consulting",
+    "staffing",
+    "recruiter",
+]
+
+def is_blocked(job: dict) -> bool:
+    text = (
+        (job.get("company") or "") + " " +
+        (job.get("title") or "") + " " +
+        (job.get("description") or "")
+    ).lower()
+
+    return any(bad in text for bad in BLOCKED_COMPANIES)
+
+
+CANDIDATE_PROFILE = """
+MS Data Science (Rice), 2+ yrs experience.
+Experience: Built AI agents, OCR systems, and automation platforms. Developed LLM/RAG applications and natural-language-to-SQL agents. Full-stack development experience at Barclays. Teaching Assistant for graduate NLP and Deep Learning courses.
+Skills: Python, SQL, Java, PyTorch, TensorFlow, LLMs, RAG, NLP, Google ADK, Gemini, AWS, GCP, Spark, BigQuery, MongoDB, React.
+Target roles: Software Engineer, FullStack Engineer, AI Engineer, ML Engineer, LLM Engineer, NLP Engineer, Data Scientist.
+"""
+
+# -----------------------------
+# EMBEDDING FUNCTION
+# -----------------------------
+def embed(text: str) -> np.ndarray:
+    if not text:
+        text = " "
+
+    result = client.models.embed_content(
+        model=EMB_MODEL,
+        contents=text,
+        config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
+    )
+
+    return np.array(result.embeddings[0].values, dtype=float)
+
+# -----------------------------
+# COSINE SIMILARITY
+# -----------------------------
+def cosine(a: np.ndarray, b: np.ndarray) -> float:
+    if not a.any() or not b.any():
+        return 0.0
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+# -----------------------------
+# PRECOMPUTE CANDIDATE VECTOR
+# -----------------------------
+print("🔹 Computing candidate embedding once...")
+CANDIDATE_VEC = embed(CANDIDATE_PROFILE)
+
+# -----------------------------
+# JOB EVALUATION
+# -----------------------------
+def evaluate_job(job: dict) -> dict:
+    desc = job.get("description") or ""
+    job_vec = embed(desc)
+    similarity = cosine(CANDIDATE_VEC, job_vec)
+
+    prompt = f"""
+You are a precise job-match evaluator. Extract missing fields and evaluate the job.
+
+Job Title: {job.get('title')}
+Company (may be null): {job.get('company')}
+Location: {job.get('location')}
+LinkedIn URL: {job.get('linkedin_url')}
+Job ID: {job.get('job_id')}
+
+Job Description:
+{desc}
+
+Candidate Profile:
+{CANDIDATE_PROFILE}
+
+Skill similarity score (0–1): {similarity}
+
+Your tasks:
+1. Infer the company name from the job description if missing.
+2. Determine visa sponsorship status:
+   - "Provides sponsorship"
+   - "Does not sponsor visas"
+   - "Unknown"
+3. Decide if the candidate should apply.
+4. Provide a short explanation in a field called "reason".
+5. Produce a final JSON object in this exact order:
+
+{{
+  "company": "<company name>",
+  "title": "<job title>",
+  "location": "<location>",
+  "linkedin_url": "<linkedin url>",
+  "job_id": "<job id>",
+  "score": <0-100>,
+  "should_apply": <true/false>,
+  "visa_block": "<Provides sponsorship | Does not sponsor visas | Unknown>",
+  "reason": "<1–2 sentence explanation>"
+}}
+
+Return ONLY valid JSON.
+"""
+
+    resp = client.models.generate_content(
+        model=GEN_MODEL,
+        contents=prompt,
+        config={"temperature": 0.1}
+    )
+
+    # Extract text safely
+    try:
+        raw = "".join(
+            part.text for part in resp.candidates[0].content.parts
+            if hasattr(part, "text")
+        )
+    except:
+        raw = ""
+
+    # Fallback for empty response
+    if not raw.strip():
+        return {
+            "company": job.get("company"),
+            "title": job.get("title"),
+            "location": job.get("location"),
+            "linkedin_url": job.get("linkedin_url"),
+            "job_id": job.get("job_id"),
+            "score": 0,
+            "should_apply": False,
+            "visa_block": "Unknown",
+            "reason": "LLM returned empty response."
+        }
+
+    # Extract JSON using regex
+    import re
+    match = re.search(r"\{.*\}", raw, re.DOTALL)
+    if not match:
+        return {
+            "company": job.get("company"),
+            "title": job.get("title"),
+            "location": job.get("location"),
+            "linkedin_url": job.get("linkedin_url"),
+            "job_id": job.get("job_id"),
+            "score": 0,
+            "should_apply": False,
+            "visa_block": "Unknown",
+            "reason": "LLM returned invalid JSON."
+        }
+
+    json_str = match.group(0)
+
+    try:
+        return json.loads(json_str)
+    except:
+        return {
+            "company": job.get("company"),
+            "title": job.get("title"),
+            "location": job.get("location"),
+            "linkedin_url": job.get("linkedin_url"),
+            "job_id": job.get("job_id"),
+            "score": 0,
+            "should_apply": False,
+            "visa_block": "Unknown",
+            "reason": "LLM failed to parse JSON."
+        }
+
+def visa_priority(value: str) -> int:
+    if value == "Provides sponsorship":
+        return 0
+    if value == "Unknown":
+        return 1
+    return 2  # Does not sponsor visas
+
+# -----------------------------
+# EVALUATE ALL JOBS
+# -----------------------------
+def evaluate_all(
+    input_file="linkedin_minimized_jobs.json",
+    output_file="scored_jobs.json"
+):
+    if not os.path.exists(input_file):
+        raise FileNotFoundError(f"Missing {input_file}")
+
+    with open(input_file) as f:
+        jobs = json.load(f)
+
+    results = []
+
+    for idx, job in enumerate(jobs, start=1):
+        print(f"\n[{idx}/{len(jobs)}] Evaluating: {job.get('title')} at {job.get('company')}")
+
+        # ⭐ Skip blocked companies BEFORE LLM call
+        if is_blocked(job):
+            print(f"⛔ Skipping blocked company: {job.get('company')}")
+            results.append({
+                "company": job.get("company"),
+                "title": job.get("title"),
+                "location": job.get("location"),
+                "linkedin_url": job.get("linkedin_url"),
+                "job_id": job.get("job_id"),
+                "score": 0,
+                "should_apply": False,
+                "visa_block": "Unknown",
+                "reason": "Blocked company (staffing/recruiter spam)"
+            })
+            continue
+
+        eval_result = evaluate_job(job)
+
+        # ⭐ Remove jobs that explicitly do NOT sponsor visas
+        if eval_result["visa_block"] == "Does not sponsor visas":
+            continue
+
+        results.append(eval_result)
+
+    # ⭐ Sort by visa priority first, then score descending
+    results = sorted(
+        results,
+        key=lambda x: (visa_priority(x["visa_block"]), -x["score"])
+    )
+
+    with open(output_file, "w") as f:
+        json.dump(results, f, indent=2)
+
+    print(f"\n✅ Saved {len(results)} visa‑friendly, sorted jobs to {output_file}")
