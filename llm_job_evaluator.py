@@ -14,21 +14,12 @@ if not API_KEY:
 client = genai.Client(api_key=API_KEY)
 
 GEN_MODEL = "gemini-2.5-flash"
-EMB_MODEL = "gemini-embedding-001"
+EMB_MODEL = "gemini-embedding-001"   
 
 BLOCKED_COMPANIES = [
-    "beaconfire",
-    "dice",
-    "jobs via dice",
-    "sysmind",
-    "sysmind llc",
-    "kforce",
-    "insight global",
-    "revature",
-    "hcl",
-    "global consulting",
-    "staffing",
-    "recruiter",
+    "beaconfire", "dice", "jobs via dice", "sysmind", "sysmind llc",
+    "kforce", "insight global", "revature", "hcl", "global consulting",
+    "staffing", "recruiter"
 ]
 
 def is_blocked(job: dict) -> bool:
@@ -37,9 +28,7 @@ def is_blocked(job: dict) -> bool:
         (job.get("title") or "") + " " +
         (job.get("description") or "")
     ).lower()
-
     return any(bad in text for bad in BLOCKED_COMPANIES)
-
 
 CANDIDATE_PROFILE = """
 MS Data Science (Rice), 2+ yrs experience.
@@ -48,7 +37,22 @@ Skills: Python, SQL, Java, PyTorch, TensorFlow, LLMs, RAG, NLP, Google ADK, Gemi
 Target roles: Software Engineer, FullStack Engineer, AI Engineer, ML Engineer, LLM Engineer, NLP Engineer, Data Scientist.
 """
 
-def embed(text: str) -> np.ndarray:
+EMBED_CACHE_FILE = "embedding_cache.json"
+
+if os.path.exists(EMBED_CACHE_FILE):
+    with open(EMBED_CACHE_FILE, "r") as f:
+        EMBED_CACHE = json.load(f)
+else:
+    EMBED_CACHE = {}
+
+def save_cache():
+    with open(EMBED_CACHE_FILE, "w") as f:
+        json.dump(EMBED_CACHE, f)
+
+def embed(text: str, cache_key: str) -> np.ndarray:
+    if cache_key in EMBED_CACHE:
+        return np.array(EMBED_CACHE[cache_key], dtype=float)
+
     if not text:
         text = " "
 
@@ -58,22 +62,41 @@ def embed(text: str) -> np.ndarray:
         config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
     )
 
-    return np.array(result.embeddings[0].values, dtype=float)
+    vec = result.embeddings[0].values
+    EMBED_CACHE[cache_key] = vec
+    save_cache()
 
+    return np.array(vec, dtype=float)
 
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
     if not a.any() or not b.any():
         return 0.0
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
-
 print("🔹 Computing candidate embedding once...")
-CANDIDATE_VEC = embed(CANDIDATE_PROFILE)
+CANDIDATE_VEC = embed(CANDIDATE_PROFILE, "candidate_profile")
 
 def evaluate_job(job: dict) -> dict:
     desc = job.get("description") or ""
-    job_vec = embed(desc)
+
+    job_id = job.get("job_id") or f"hash_{abs(hash(desc))}"
+    cache_key = f"job_{job_id}"
+
+    job_vec = embed(desc, cache_key)
     similarity = cosine(CANDIDATE_VEC, job_vec)
+
+    if similarity < 0.50:
+        return {
+            "company": job.get("company"),
+            "title": job.get("title"),
+            "location": job.get("location"),
+            "linkedin_url": job.get("linkedin_url"),
+            "job_id": job.get("job_id"),
+            "score": int(similarity * 100),
+            "should_apply": False,
+            "visa_block": "Unknown",
+            "reason": "Low similarity (<50). Skipped LLM to save cost."
+        }
 
     prompt = f"""
 You are a precise job-match evaluator. Extract missing fields and evaluate the job.
@@ -123,7 +146,6 @@ Return ONLY valid JSON.
         config={"temperature": 0.1}
     )
 
-    # Extract text safely
     try:
         raw = "".join(
             part.text for part in resp.candidates[0].content.parts
@@ -132,7 +154,6 @@ Return ONLY valid JSON.
     except:
         raw = ""
 
-    # Fallback for empty response
     if not raw.strip():
         return {
             "company": job.get("company"),
@@ -140,13 +161,12 @@ Return ONLY valid JSON.
             "location": job.get("location"),
             "linkedin_url": job.get("linkedin_url"),
             "job_id": job.get("job_id"),
-            "score": 0,
+            "score": int(similarity * 100),
             "should_apply": False,
             "visa_block": "Unknown",
             "reason": "LLM returned empty response."
         }
 
-    # Extract JSON using regex
     import re
     match = re.search(r"\{.*\}", raw, re.DOTALL)
     if not match:
@@ -156,7 +176,7 @@ Return ONLY valid JSON.
             "location": job.get("location"),
             "linkedin_url": job.get("linkedin_url"),
             "job_id": job.get("job_id"),
-            "score": 0,
+            "score": int(similarity * 100),
             "should_apply": False,
             "visa_block": "Unknown",
             "reason": "LLM returned invalid JSON."
@@ -173,7 +193,7 @@ Return ONLY valid JSON.
             "location": job.get("location"),
             "linkedin_url": job.get("linkedin_url"),
             "job_id": job.get("job_id"),
-            "score": 0,
+            "score": int(similarity * 100),
             "should_apply": False,
             "visa_block": "Unknown",
             "reason": "LLM failed to parse JSON."
@@ -184,7 +204,7 @@ def visa_priority(value: str) -> int:
         return 0
     if value == "Unknown":
         return 1
-    return 2  
+    return 2
 
 def evaluate_all(
     input_file="linkedin_minimized_jobs.json",
