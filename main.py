@@ -5,21 +5,13 @@ from linkedin_minimizer import minimize_all
 from llm_job_evaluator import evaluate_all
 from job_digest_email import send_job_digest
 
-# Default LinkedIn search URL
 SEARCH_URL = (
     "https://www.linkedin.com/jobs/search/?currentJobId=4423543221&distance=25.0&f_E=2&f_TPR=r86400&geoId=103644278&keywords=software%20engineer&origin=JOBS_HOME_KEYWORD_HISTORY"
 )
 
-# ---------------------------------------------------------
-# Utility: Check if a file exists and is non‑empty
-# ---------------------------------------------------------
 def file_exists(path: str) -> bool:
     return os.path.exists(path) and os.path.getsize(path) > 0
 
-
-# ---------------------------------------------------------
-# Full Pipeline
-# ---------------------------------------------------------
 def run_full_pipeline():
     print("\n🚀 Running FULL Job Agent Pipeline...\n")
 
@@ -43,10 +35,6 @@ def run_full_pipeline():
 
     print("\n🎉 FULL PIPELINE COMPLETE!\n")
 
-
-# ---------------------------------------------------------
-# Menu UI
-# ---------------------------------------------------------
 def menu():
     print("\n==============================")
     print("   🤖 Job Agent Controller")
@@ -63,10 +51,6 @@ def menu():
 
     return input("Select an option: ").strip()
 
-
-# ---------------------------------------------------------
-# Smart Mode — runs only missing steps
-# ---------------------------------------------------------
 def smart_mode():
     print("\n🧠 Smart Mode Activated — Running only missing steps...\n")
 
@@ -102,10 +86,6 @@ def smart_mode():
 
     print("\n🎉 Smart Mode Complete!\n")
 
-
-# ---------------------------------------------------------
-# Main Loop
-# ---------------------------------------------------------
 def main():
     while True:
         choice = menu()

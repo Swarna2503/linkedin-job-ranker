@@ -1,5 +1,3 @@
-# linkedin_minimizer.py
-
 import os
 import json
 

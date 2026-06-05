@@ -1,5 +1,3 @@
-# linkedin_scraper_agent.py
-
 import os
 import re
 import json

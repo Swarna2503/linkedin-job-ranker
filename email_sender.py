@@ -39,4 +39,4 @@ def send_email(subject: str, html_body: str, recipient: str, attachments=None):
         server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
         server.send_message(msg)
 
-    print("📨 Email sent successfully!")
+    print("Email sent successfully!")

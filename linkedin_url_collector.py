@@ -6,7 +6,6 @@ from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 AUTOMATION_PROFILE = "/Users/swarna/automation_profile"
 os.makedirs(AUTOMATION_PROFILE, exist_ok=True)
 
-# All possible job list containers LinkedIn uses
 JOB_LIST_SELECTORS = [
     "div.jobs-search-results-list",
     "div.scaffold-layout__list-container",
@@ -116,7 +115,6 @@ def collect_linkedin_job_urls(base_url: str, max_pages: int = 25) -> list[str]:
 
     print(f"\n✅ TOTAL JOBS COLLECTED: {len(all_urls)}")
 
-    # ⭐ Save URLs to file
     with open("linkedin_job_urls.txt", "w") as f:
         for url in all_urls:
             f.write(url + "\n")

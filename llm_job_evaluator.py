@@ -1,5 +1,3 @@
-# evaluator.py
-
 import os
 import json
 import numpy as np
@@ -18,9 +16,6 @@ client = genai.Client(api_key=API_KEY)
 GEN_MODEL = "gemini-2.5-flash"
 EMB_MODEL = "gemini-embedding-001"
 
-# -----------------------------
-# BLOCKLIST (skip spam companies)
-# -----------------------------
 BLOCKED_COMPANIES = [
     "beaconfire",
     "dice",
@@ -53,9 +48,6 @@ Skills: Python, SQL, Java, PyTorch, TensorFlow, LLMs, RAG, NLP, Google ADK, Gemi
 Target roles: Software Engineer, FullStack Engineer, AI Engineer, ML Engineer, LLM Engineer, NLP Engineer, Data Scientist.
 """
 
-# -----------------------------
-# EMBEDDING FUNCTION
-# -----------------------------
 def embed(text: str) -> np.ndarray:
     if not text:
         text = " "
@@ -68,23 +60,16 @@ def embed(text: str) -> np.ndarray:
 
     return np.array(result.embeddings[0].values, dtype=float)
 
-# -----------------------------
-# COSINE SIMILARITY
-# -----------------------------
+
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
     if not a.any() or not b.any():
         return 0.0
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
-# -----------------------------
-# PRECOMPUTE CANDIDATE VECTOR
-# -----------------------------
+
 print("🔹 Computing candidate embedding once...")
 CANDIDATE_VEC = embed(CANDIDATE_PROFILE)
 
-# -----------------------------
-# JOB EVALUATION
-# -----------------------------
 def evaluate_job(job: dict) -> dict:
     desc = job.get("description") or ""
     job_vec = embed(desc)
@@ -199,11 +184,8 @@ def visa_priority(value: str) -> int:
         return 0
     if value == "Unknown":
         return 1
-    return 2  # Does not sponsor visas
+    return 2  
 
-# -----------------------------
-# EVALUATE ALL JOBS
-# -----------------------------
 def evaluate_all(
     input_file="linkedin_minimized_jobs.json",
     output_file="scored_jobs.json"
@@ -219,7 +201,6 @@ def evaluate_all(
     for idx, job in enumerate(jobs, start=1):
         print(f"\n[{idx}/{len(jobs)}] Evaluating: {job.get('title')} at {job.get('company')}")
 
-        # ⭐ Skip blocked companies BEFORE LLM call
         if is_blocked(job):
             print(f"⛔ Skipping blocked company: {job.get('company')}")
             results.append({
@@ -237,13 +218,11 @@ def evaluate_all(
 
         eval_result = evaluate_job(job)
 
-        # ⭐ Remove jobs that explicitly do NOT sponsor visas
         if eval_result["visa_block"] == "Does not sponsor visas":
             continue
 
         results.append(eval_result)
 
-    # ⭐ Sort by visa priority first, then score descending
     results = sorted(
         results,
         key=lambda x: (visa_priority(x["visa_block"]), -x["score"])

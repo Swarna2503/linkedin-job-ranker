@@ -1,5 +1,3 @@
-# job_digest_email.py
-
 import json
 from email_sender import send_email
 
