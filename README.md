@@ -13,10 +13,6 @@ An intelligent job search automation tool that scrapes LinkedIn job listings, ev
 5. **Ranking** jobs by fit and visa sponsorship status
 6. **Emailing** personalized job digest reports with top recommendations
 
-Perfect for visa-dependent job seekers who want to filter opportunities intelligently before applying.
-
----
-
 ## ✨ Key Features
 
 - ✅ **Automated Job Collection** – Playwright-based browser automation to collect job URLs across multiple pages
@@ -28,8 +24,6 @@ Perfect for visa-dependent job seekers who want to filter opportunities intellig
 - ✅ **Intelligent Caching** – Avoids re-processing and re-embedding jobs
 - ✅ **Smart Mode** – Run only missing pipeline steps (no redundant work)
 - ✅ **Customizable Prompts** – Easy to adjust candidate profile and evaluation criteria
-
----
 
 ## 🏗️ Architecture
 
@@ -43,17 +37,6 @@ main.py (Controller)
     └── email_sender.py → Send via Gmail SMTP
 ```
 
-### Pipeline Stages
-
-| Stage | Module | Input | Output |
-|-------|--------|-------|--------|
-| 1. Collection | `linkedin_url_collector.py` | LinkedIn search URL | `linkedin_job_urls.txt` |
-| 2. Scraping | `linkedin_api_scraper.py` | `linkedin_job_urls.txt` | `linkedin_api_jobs.json` |
-| 3. Minimization | `linkedin_minimizer.py` | `linkedin_api_jobs.json` | `linkedin_minimized_jobs.json` |
-| 4. Evaluation | `llm_job_evaluator.py` | `linkedin_minimized_jobs.json` | `scored_jobs.json` |
-| 5. Email | `job_digest_email.py` | `scored_jobs.json` | Email sent + `all_jobs.html` |
-
----
 
 ## 📦 Installation
 
@@ -115,8 +98,6 @@ main.py (Controller)
    - `JSESSIONID` – Your session ID
 5. **Paste into `.env` file** (keep the quotes if present)
 
----
-
 ## 🚀 Usage
 
 ### Run the Controller Menu
@@ -156,26 +137,6 @@ This will:
 4. Evaluate jobs with Gemini LLM
 5. Send email digest
 
-### Individual Steps
-
-```bash
-# Collect URLs only
-python main.py  # Option 4
-
-# Scrape descriptions
-python main.py  # Option 5
-
-# Evaluate jobs
-python main.py  # Option 2
-
-# Send email
-python main.py  # Option 3
-
-# Smart Mode (runs only missing steps)
-python main.py  # Option 7
-```
-
----
 
 ## ⚙️ Configuration
 
@@ -211,17 +172,14 @@ Edit blocked companies in `linkedin_minimizer.py`:
 
 ```python
 BLOCKED_PHRASES = [
-    "jobs via dice",
-    "your phrase here",
+    
 ]
 
 BLOCKED_TOKENS = [
-    "beaconfire",
-    "your_company_here",
+    
 ]
 
 BLOCKED_DOMAINS = [
-    "jobright.ai",
     "your_domain.com",
 ]
 ```
@@ -238,9 +196,6 @@ send_email(
     attachments=[attachment_path]
 )
 ```
-
----
-
 ## 📊 Output Files
 
 | File | Purpose |
@@ -252,44 +207,6 @@ send_email(
 | `scored_jobs.json` | Evaluated jobs with LLM scores and visa info |
 | `embedding_cache.json` | Cached embeddings for performance |
 | `all_jobs.html` | Full HTML report (email attachment) |
-
----
-
-## 🔍 How LLM Evaluation Works
-
-1. **Embedding Generation:**
-   - Converts your candidate profile → vector embedding
-   - Converts each job description → vector embedding
-   - Uses cosine similarity to compare
-
-2. **Semantic Filtering:**
-   - Only jobs with similarity ≥ 0.70 are evaluated
-   - Reduces API calls to Gemini
-
-3. **LLM Scoring:**
-   - Generates detailed evaluation for top N jobs
-   - Returns:
-     - **Score:** 0-100 match percentage
-     - **should_apply:** Boolean recommendation
-     - **visa_block:** Sponsorship status
-     - **reason:** 1-2 sentence explanation
-
-4. **Ranking:**
-   - Sorted by visa sponsorship priority
-   - Then by match score (highest first)
-
----
-
-## 📧 Email Output
-
-Receives a beautifully formatted email with:
-- **Top 20 jobs** in email body
-- **Full job list** as HTML attachment
-- **Direct apply links** to each LinkedIn job
-- **Visa sponsorship status** for each role
-- **Match scores** and reasoning
-
----
 
 ## ⚠️ Troubleshooting
 
@@ -329,8 +246,6 @@ Receives a beautifully formatted email with:
   3. Generate app-specific password for Gmail
   4. Use that password in `.env`
 
----
-
 ## 🔒 Security
 
 ⚠️ **IMPORTANT:**
@@ -338,8 +253,6 @@ Receives a beautifully formatted email with:
 - `.gitignore` protects sensitive files
 - Cookies are session-specific and auto-expire
 - Use app-specific Gmail passwords, not your main password
-
----
 
 ## 📈 Performance Tips
 
@@ -359,20 +272,6 @@ Receives a beautifully formatted email with:
 4. **Persistent URL Tracking** – Avoids duplicate scraping
    - Stored in `seen_linkedin_urls.txt`
 
----
-
-## 🛠️ Dependencies
-
-```
-playwright==1.40.0+           # Browser automation
-python-dotenv==1.0.0+         # Environment variables
-google-genai==0.3.0+          # Google Gemini API
-requests==2.31.0+             # HTTP requests
-tqdm==4.66.0+                 # Progress bars
-numpy==1.24.0+                # Numerical computing
-```
-
----
 
 ## 🤝 Contributing
 
@@ -383,7 +282,6 @@ Pull requests welcome! Areas for improvement:
 - Scheduling automation (cron jobs)
 - Dashboard/web UI
 
----
 
 ## ⚡ Limitations & Disclaimers
 
@@ -393,19 +291,13 @@ Pull requests welcome! Areas for improvement:
 - **API Costs:** Uses paid Google Gemini API for LLM evaluation (embeddings + generation).
 - **Email Limits:** Gmail has daily sending limits (~500 emails/day).
 
----
-
 ## 📜 License
 
 MIT License – Feel free to use and modify!
 
----
-
 ## 👤 Author
 
 Created by **Swarna Durga Nallam**
-
----
 
 ## 🚨 Common Errors & Fixes
 
@@ -417,23 +309,11 @@ Created by **Swarna Durga Nallam**
 | `JSON parse failed` | Malformed response | Retry; may be transient |
 | `SMTP authentication failed` | Wrong Gmail app password | Generate new app password from Google Account |
 
----
-
 ## 📞 Support
 
 For issues, questions, or feature requests:
 1. Check this README's troubleshooting section
 2. Review code comments in each module
 3. Open an issue on GitHub
-
----
-
-## ✅ Version History
-
-- **v1.0** – Initial release with full pipeline
-- Features: Collection, scraping, minimization, LLM evaluation, email digests
-- Tested with Python 3.10+
-
----
 
 Happy job hunting! 🎉
