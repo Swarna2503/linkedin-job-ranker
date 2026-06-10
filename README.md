@@ -1,42 +1,55 @@
-# 🤖 LinkedIn Job Ranker
+# 🤖 LinkedIn Job Ranker AI Agent
 
-An intelligent job search automation tool that scrapes LinkedIn job listings, evaluates them using AI, and sends personalized job digest emails with visa sponsorship insights.
+Automated AI-powered job discovery, ranking, and visa sponsorship analysis platform.
 
-## 📋 Overview
+## 🎯 Why I Built This
 
-**LinkedIn Job Ranker** is a comprehensive Python pipeline that automates job hunting by:
+As an international student searching for AI and Machine Learning roles, I found myself spending hours every day reviewing LinkedIn postings, checking visa sponsorship information, and filtering irrelevant opportunities.
 
-1. **Collecting** LinkedIn job URLs using browser automation (Playwright)
-2. **Scraping** detailed job information via LinkedIn's private API
-3. **Filtering** out staffing/recruiting agencies and unwanted companies
-4. **Evaluating** jobs using Google's Gemini LLM for semantic similarity matching
-5. **Ranking** jobs by fit and visa sponsorship status
-6. **Emailing** personalized job digest reports with top recommendations
+I built LinkedIn Job Ranker to automate this process using AI agents, semantic search, and LLM-based evaluation so that only the most relevant opportunities reach me each day.
 
-## ✨ Key Features
+## 🛠️ Technologies
 
-- ✅ **Automated Job Collection** – Playwright-based browser automation to collect job URLs across multiple pages
-- ✅ **LinkedIn API Scraping** – Direct API integration for detailed job descriptions and metadata
-- ✅ **Smart Filtering** – Automatically blocks staffing companies, recruiters, and low-quality job postings
-- ✅ **LLM-Powered Evaluation** – Uses Google Gemini to semantically match jobs to your profile
-- ✅ **Visa Status Tracking** – Categorizes jobs by visa sponsorship availability
-- ✅ **Email Digests** – Beautiful HTML emails with top job recommendations + full report attachments
-- ✅ **Intelligent Caching** – Avoids re-processing and re-embedding jobs
-- ✅ **Smart Mode** – Run only missing pipeline steps (no redundant work)
-- ✅ **Customizable Prompts** – Easy to adjust candidate profile and evaluation criteria
+- Python
+- Playwright
+- Google Gemini
+- Vector Embeddings
+- SMTP
+- LinkedIn API
+- NumPy
+- Requests
 
-## 🏗️ Architecture
+## 🚀 Overview
+
+LinkedIn Job Ranker AI Agent is an end-to-end job discovery and ranking system that automates the process of finding, evaluating, and prioritizing job opportunities from LinkedIn.
+
+The platform uses browser automation, data extraction, semantic search, and large language models to identify high-quality opportunities that closely match a candidate's skills, experience, and visa requirements.
+
+<img width="1700" height="685" alt="Screenshot 2026-06-10 at 1 25 16 AM" src="https://github.com/user-attachments/assets/7352c110-e35a-4fbf-8476-e1dc0ba63ce5" />
+<img width="1292" height="634" alt="Screenshot 2026-06-10 at 1 24 31 AM" src="https://github.com/user-attachments/assets/168d485d-0e8f-4e80-9fae-18143e4ecf3e" />
+
+
+### How It Works
 
 ```
-main.py (Controller)
-    ├── linkedin_url_collector.py → Collect LinkedIn job URLs
-    ├── linkedin_api_scraper.py → Fetch job details via API
-    ├── linkedin_minimizer.py → Clean & filter jobs
-    ├── llm_job_evaluator.py → Score & rank jobs with LLM
-    ├── job_digest_email.py → Build HTML digest
-    └── email_sender.py → Send via Gmail SMTP
+LinkedIn Job Search
+        ↓
+Automated URL Collection (Playwright)
+        ↓
+Job Data Extraction (LinkedIn API)
+        ↓
+Data Cleaning & Company Filtering
+        ↓
+Embedding-Based Semantic Matching
+        ↓
+LLM Evaluation & Reasoning (Gemini)
+        ↓
+Visa Sponsorship Classification
+        ↓
+Job Ranking & Recommendation
+        ↓
+Personalized HTML Email Digest
 ```
-
 
 ## 📦 Installation
 
@@ -85,8 +98,6 @@ main.py (Controller)
    GMAIL_ADDRESS=your_email@gmail.com
    GMAIL_APP_PASSWORD=your_app_specific_password
    ```
-
----
 
 ## 🔐 Getting LinkedIn Cookies
 
@@ -243,7 +254,7 @@ send_email(
 - **Fix:** Generate app-specific password:
   1. Go to [Google Account Security](https://myaccount.google.com/security)
   2. Enable 2-step verification
-  3. Generate app-specific password for Gmail
+  3. Generate a Gmail App Password: https://myaccount.google.com/apppasswords
   4. Use that password in `.env`
 
 ## 🔒 Security
