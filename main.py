@@ -1,25 +1,23 @@
 import os
-from linkedin_url_collector import collect_linkedin_job_urls
-from linkedin_api_scraper import scrape_all
-from linkedin_minimizer import minimize_all
+from linkedin_collector import collect_job_urls
+from linkedin_scraper import scrape_all_jobs
+from minimize_scraped_jobs import minimize_all
 from llm_job_evaluator import evaluate_all
 from job_digest_email import send_job_digest
 
-SEARCH_URL = (
-    "https://www.linkedin.com/jobs/search/?currentJobId=4423543221&distance=25.0&f_E=2&f_TPR=r86400&geoId=103644278&keywords=software%20engineer&origin=JOBS_HOME_KEYWORD_HISTORY"
-)
 
 def file_exists(path: str) -> bool:
     return os.path.exists(path) and os.path.getsize(path) > 0
+
 
 def run_full_pipeline():
     print("\n🚀 Running FULL Job Agent Pipeline...\n")
 
     print("📌 Step 1: Collecting LinkedIn job URLs...")
-    collect_linkedin_job_urls(SEARCH_URL, max_pages=25)
+    collect_job_urls(max_pages=25)
 
     print("📌 Step 2: Scraping job descriptions...")
-    scrape_all()
+    scrape_all_jobs()
 
     print("📌 Step 3: Minimizing job fields...")
     minimize_all()
@@ -34,6 +32,7 @@ def run_full_pipeline():
     send_job_digest()
 
     print("\n🎉 FULL PIPELINE COMPLETE!\n")
+
 
 def menu():
     print("\n==============================")
@@ -51,18 +50,19 @@ def menu():
 
     return input("Select an option: ").strip()
 
+
 def smart_mode():
     print("\n🧠 Smart Mode Activated — Running only missing steps...\n")
 
     if not file_exists("linkedin_job_urls.txt"):
         print("📌 Step 1: Collecting URLs...")
-        collect_linkedin_job_urls(SEARCH_URL, max_pages=25)
+        collect_job_urls(max_pages=25)
     else:
         print("⚠️ Step 1 skipped — URLs already collected.")
 
-    if not file_exists("linkedin_api_jobs.json"):
+    if not file_exists("linkedin_scraped_jobs.json"):
         print("📌 Step 2: Scraping job descriptions...")
-        scrape_all()
+        scrape_all_jobs()
     else:
         print("⚠️ Step 2 skipped — Scraped data already exists.")
 
@@ -86,6 +86,7 @@ def smart_mode():
 
     print("\n🎉 Smart Mode Complete!\n")
 
+
 def main():
     while True:
         choice = menu()
@@ -108,16 +109,15 @@ def main():
 
         elif choice == "4":
             print("\n📌 Running Step 1: Collecting URLs...")
-            collect_linkedin_job_urls(SEARCH_URL, max_pages=25)
+            collect_job_urls(max_pages=25)
             print("✅ URLs collected\n")
 
         elif choice == "5":
             print("\n📌 Running Step 2: Scraping job descriptions...")
-
-            if file_exists("linkedin_api_jobs.json"):
+            if file_exists("linkedin_scraped_jobs.json"):
                 print("⚠️ Scraped data already exists — skipping Step 2.")
             else:
-                scrape_all()
+                scrape_all_jobs()
                 print("✅ Scraping complete\n")
 
         elif choice == "6":

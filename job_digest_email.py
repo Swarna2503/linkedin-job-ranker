@@ -18,7 +18,6 @@ def build_html(jobs):
             <h3>{job['title']} — {job['company']}</h3>
             <p><strong>Score:</strong> {job['score']}</p>
             <p><strong>Visa:</strong> {job['visa_block']}</p>
-            <p><strong>Location:</strong> {job['location']}</p>
             <p><strong>Reason:</strong> {job.get('reason', 'No reason provided')}</p>
             <a href="{job['linkedin_url']}"
                style="display:inline-block; padding:10px 15px; background:#0073b1; color:white; text-decoration:none; border-radius:5px;">
@@ -29,7 +28,6 @@ def build_html(jobs):
 
     html += "</body></html>"
     return html
-
 
 def send_job_digest():
     jobs = load_jobs()
